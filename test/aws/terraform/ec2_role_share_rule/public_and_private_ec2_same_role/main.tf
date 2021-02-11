@@ -135,4 +135,8 @@ resource "aws_instance" "priv_ins" {
   instance_type        = "t2.micro"
   subnet_id            = module.vpc.private_subnets[0]
   iam_instance_profile = aws_iam_instance_profile.test_profile2.name
+
+  tags = {
+    Project = "web"
+  }
 }
