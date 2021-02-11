@@ -1,0 +1,32 @@
+pipeline {
+  agent any
+  stages {
+    stage('TF init & plan') {
+      when { anyOf {branch "master";changeRequest() } }
+      steps {
+        withAWS(credentials: 'aws-oqf', region: 'us-east-1'){
+          sh '''
+              cd test/aws/terraform/ec2_role_share_rule/public_and_private_ec2_same_role
+              terraform init
+              terraform plan -out=plan.out
+          '''
+        }
+      }
+    }
+
+    stage('Cloudrail') {
+      when { anyOf {branch "master";changeRequest() } }
+      environment {
+        CLOUDRAIL_API_KEY = credentials('oqf-cloudrail-apikey')
+      }
+      steps {
+        sh '''
+            cd test/aws/terraform/ec2_role_share_rule/public_and_private_ec2_same_role
+            cloudrail run --directory . --tf-plan "plan.out" \
+              --origin ci --build-link "${BUILD_URL}"  --execution-source-identifier "${BUILD_NUMBER}"  \
+              --api-key "$CLOUDRAIL_API_KEY" \
+              --auto-approve
+        '''
+      }
+    }
+}    
